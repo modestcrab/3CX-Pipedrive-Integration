@@ -1,0 +1,214 @@
+<?xml version="1.0"?>
+<Crm xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" Country="GB" Name="Pipedrive" Version="2" SupportsEmojis="false">
+  <Number Prefix="Zeros" MaxLength="12" />
+  <Connection MaxConcurrentRequests="16" />
+  <Parameters>
+    <Parameter Name="APIkey" Type="String" Parent="Settings" Editor="String" Title="API Key:" Default="" />
+    <Parameter Name="Domain" Type="String" Parent="Settings" Editor="String" Title="Domain Part:" Default="" />
+    <Parameter Name="CreateContactEnabled" Type="Boolean" Parent="Contact Creation" Editor="String" Title="Enable Contact Creation?" Default="True" />
+    <Parameter Name="CreateContactName" Type="String" Parent="Contact Creation" Editor="String" Title="New Contact Name:" Default="New Telephone Contact [Number]" />
+    <Parameter Name="ReportCallEnabled" Type="Boolean" Parent="Call Reporting" Editor="String" Title="Enable Call Journaling?" Default="True" />
+    <Parameter Name="InboundCallText" Type="String" Parent="Call Reporting" Editor="String" Title="Answered Inbound Call Descriptor:" Default="[[CallStartTimeLocal].ToString(&quot;t&quot;)]: Incoming Call (duration [Duration])" />
+    <Parameter Name="MissedCallText" Type="String" Parent="Call Reporting" Editor="String" Title="Missed Call Descriptor:" Default="[[CallStartTimeLocal].ToString(&quot;t&quot;)]: Missed Call" />
+    <Parameter Name="OutboundCallText" Type="String" Parent="Call Reporting" Editor="String" Title="Answered Outbound Call Descriptor:" Default="[[CallStartTimeLocal].ToString(&quot;t&quot;)]: OutGoing Call (duration [Duration])" />
+    <Parameter Name="NotAnsweredOutboundCallText" Type="String" Parent="Call Reporting" Editor="String" Title="Unanswered Outbound Call Descriptor:" Default="[[CallStartTimeLocal].ToString(&quot;t&quot;)]: Unanswered Outgoing Call" />
+  </Parameters>
+  <Authentication Type="No" />
+  <Scenarios>
+    <Scenario Type="REST">
+      <Request Url="https://api.pipedrive.com/v1/persons/search?term=[Number]&amp;fields=phone&amp;start=0&amp;api_token=[APIkey]" MessagePasses="0" RequestEncoding="UrlEncoded" RequestType="Get" ResponseType="Json" />
+      <Rules>
+        <Rule Type="Number">data.items.item.phones</Rule>
+      </Rules>
+      <Variables>
+        <Variable Name="PersonId" Path="data.items.item.id">
+          <Filter />
+        </Variable>
+      </Variables>
+      <Outputs Next="GetContactData" AllowEmpty="false">
+        <Output Type="ContactID" Passes="0" Value="[Id]" />
+      </Outputs>
+    </Scenario>
+    <Scenario Id="GetContactData" Type="REST">
+      <Request Url="https://api.pipedrive.com/v1/persons/[Id]?api_token=[APIkey]" MessagePasses="0" RequestEncoding="UrlEncoded" RequestType="Get" ResponseType="Json" />
+      <Rules>
+        <Rule Type="Equals" Ethalon="[Id]">data.id</Rule>
+      </Rules>
+      <Variables>
+        <Variable Name="EntityId" Path="data.id">
+          <Filter />
+        </Variable>
+        <Variable Name="Company" Path="data.org_name">
+          <Filter />
+        </Variable>
+        <Variable Name="FirstName" Path="data.first_name">
+          <Filter />
+        </Variable>
+        <Variable Name="LastName" Path="data.last_name">
+          <Filter />
+        </Variable>
+        <Variable Name="PhotoURL" Path="data.picture_id.pictures.128">
+          <Filter />
+        </Variable>
+        <Variable Name="WorkPhone" Path="data.phone.value">
+          <Filter>
+            <Rule Type="Equals" Ethalon="work">data.phone.label</Rule>
+          </Filter>
+        </Variable>
+        <Variable Name="MobilePhone" Path="data.phone.value">
+          <Filter>
+            <Rule Type="Equals" Ethalon="mobile">data.phone.label</Rule>
+          </Filter>
+        </Variable>
+        <Variable Name="HomePhone" Path="data.phone.value">
+          <Filter>
+            <Rule Type="Equals" Ethalon="home">data.phone.label</Rule>
+          </Filter>
+        </Variable>
+        <Variable Name="OtherPhone" Path="data.phone.value">
+          <Filter>
+            <Rule Type="Equals" Ethalon="other">data.phone.label</Rule>
+          </Filter>
+        </Variable>
+        <Variable Name="Email" Path="data.email.value">
+          <Filter>
+            <Rule Type="Equals" Ethalon="work">data.email.label</Rule>
+          </Filter>
+        </Variable>
+      </Variables>
+      <Outputs Next="" AllowEmpty="false">
+        <Output Type="FirstName" Passes="0" Value="[FirstName]" />
+        <Output Type="LastName" Passes="0" Value="[LastName]" />
+        <Output Type="CompanyName" Passes="0" Value="[Company]" />
+        <Output Type="PhoneMobile" Passes="0" Value="[MobilePhone]" />
+        <Output Type="PhoneBusiness" Passes="0" Value="[WorkPhone]" />
+        <Output Type="PhoneHome" Passes="0" Value="[HomePhone]" />
+        <Output Type="PhoneOther" Passes="0" Value="[OtherPhone]" />
+        <Output Type="Email" Passes="0" Value="[Email]" />
+        <Output Type="EntityId" Passes="0" Value="[EntityId]" />
+        <Output Type="EntityType" Passes="0" Value="Contacts" />
+        <Output Type="ContactUrl" Passes="0" Value="https://[Domain].pipedrive.com/person/[Id]" />
+        <Output Type="PhotoUrl" Passes="0" Value="[PhotoURL]" />
+      </Outputs>
+    </Scenario>
+    <Scenario Id="CreateContactRecord" Type="REST">
+      <Request SkipIf="[CreateContactEnabled]!=True" Url="https://api.pipedrive.com/v1/persons?api_token=[APIkey]" MessagePasses="0" Message="" RequestEncoding="Json" RequestType="Post" ResponseType="Json">
+        <PostValues>
+          <Value Key="name" Passes="2" Type="String">[[CreateContactName]]</Value>
+          <Value Key="phone" Passes="1" Type="String">[Number]</Value>
+        </PostValues>
+      </Request>
+      <Rules>
+        <Rule Type="Any">data.id</Rule>
+      </Rules>
+      <Variables>
+        <Variable Name="Id" Path="data.id">
+          <Filter />
+        </Variable>
+      </Variables>
+      <Outputs AllowEmpty="false">
+        <Output Type="ContactUrl" Passes="0" Value="https://[Domain].pipedrive.com/person/[Id]" />
+        <Output Type="FirstName" Passes="0" Value="[CreateContactName]" />
+        <Output Type="PhoneBusiness" Passes="0" Value="[Number]" />
+        <Output Type="EntityId" Passes="0" Value="[Id]" />
+      </Outputs>
+    </Scenario>
+    <Scenario Id="ReportCall" Type="REST">
+      <Request SkipIf="[ReportCallEnabled]!=True" Url="https://api.pipedrive.com/v1/itemSearch?term=AgentExtension-[Agent]&amp;item_type=person&amp;start=0&amp;exact_match=1&amp;api_token=[APIkey]" MessagePasses="0" RequestEncoding="UrlEncoded" RequestType="Get" ResponseType="Json" />
+      <Rules>
+        <Rule Type="Any">data.items.item</Rule>
+      </Rules>
+      <Variables>
+        <Variable Name="CRMUserID" Path="data.items.item.id">
+          <Filter />
+        </Variable>
+        <Variable Name="CRMUserEmail" Path="data.items.item.primary_email">
+          <Filter />
+        </Variable>
+      </Variables>
+      <Outputs Next="ReportCall-GetCRMUser" AllowEmpty="false" />
+    </Scenario>
+    <Scenario Id="ReportCall-GetCRMUser" Type="REST">
+      <Request SkipIf="" Url="https://api.pipedrive.com/v1/users/find?term=[CRMUserEmail]&amp;search_by_email=1&amp;api_token=[APIkey]" MessagePasses="0" RequestEncoding="UrlEncoded" RequestType="Get" ResponseType="Json" />
+      <Rules>
+        <Rule Type="Any">data.id</Rule>
+      </Rules>
+      <Variables>
+        <Variable Name="CRMUserID" Path="data.id">
+          <Filter />
+        </Variable>
+        <Variable Name="CRMUserName" Path="data.name">
+          <Filter />
+        </Variable>
+      </Variables>
+      <Outputs Next="ReportCall-GetPersonID" AllowEmpty="false" />
+    </Scenario>
+    <Scenario Id="ReportCall-GetPersonID" Type="REST">
+      <Request Url="https://api.pipedrive.com/v1/persons/search?term=[Number]&amp;fields=phone&amp;start=0&amp;api_token=[APIkey]" MessagePasses="0" RequestEncoding="UrlEncoded" RequestType="Get" ResponseType="Json" />
+      <Rules>
+        <Rule Type="Number">data.items.item.phones</Rule>
+      </Rules>
+      <Variables>
+        <Variable Name="PersonId" Path="data.items.item.id">
+          <Filter />
+        </Variable>
+      </Variables>
+      <Outputs Next="ReportCall-GetLead" AllowEmpty="false" />
+    </Scenario>
+    <Scenario Id="ReportCall-AddActivity" Type="REST">
+      <Request Url="https://api.pipedrive.com/v1/activities?api_token=[APIkey]" MessagePasses="0" Message="" RequestEncoding="Json" RequestType="Post" ResponseType="Json">
+        <PostValues>
+          <Value Key="subject" If="[CallType]==Inbound" Passes="2" Type="String">[[InboundCallText]]</Value>
+          <Value Key="subject" If="[CallType]==Missed" Passes="2" Type="String">[[MissedCallText]]</Value>
+          <Value Key="subject" If="[CallType]==Outbound" Passes="2" Type="String">[[OutboundCallText]]</Value>
+          <Value Key="subject" If="[CallType]==Notanswered" Passes="2" Type="String">[[NotAnsweredOutboundCallText]]</Value>
+          <Value Key="type" Passes="0" Type="String">Call</Value>
+          <Value Key="person_id" Passes="0" Type="Integer">[PersonId]</Value>
+          <Value Key="done" If="[CallType]!=Missed" Passes="1" Type="Integer">1</Value>
+          <Value Key="done" If="[CallType]==Missed" Passes="1" Type="Integer">0</Value>
+          <Value Key="user_id" Passes="0" Type="Integer">[CRMUserID]</Value>
+          <Value Key="deal_id" Passes="0" Type="String">[DealID]</Value>
+          <Value Key="lead_id" Passes="0" Type="String">[LeadID]</Value>
+        </PostValues>
+      </Request>
+      <Variables />
+      <Outputs AllowEmpty="false" />
+    </Scenario>
+    <Scenario Id="ReportCall-GetDeal" Type="REST">
+      <Request SkipIf="" Url="https://api.pipedrive.com/v1/persons/[PersonId]/deals?start=0&amp;status=all_not_deleted&amp;sort=id%20DESC&amp;api_token=[APIkey]" MessagePasses="0" RequestEncoding="UrlEncoded" RequestType="Get" ResponseType="Json" />
+      <Rules>
+        <Rule Type="Any">data.id</Rule>
+      </Rules>
+      <Variables>
+        <Variable Name="DealID" Path="data.id">
+          <Filter />
+        </Variable>
+      </Variables>
+      <Outputs Next="ReportCall-AddActivity" AllowEmpty="true" />
+    </Scenario>
+    <Scenario Id="ReportCall-GetLead" Type="REST">
+      <Request Url="https://api.pipedrive.com/v1/leads?owner_id=[CRMUserID]&amp;person_id=[PersonId]&amp;api_token=[APIkey]" MessagePasses="0" RequestEncoding="UrlEncoded" RequestType="Get" ResponseType="Json" />
+      <Rules>
+        <Rule Type="Any">data.id</Rule>
+      </Rules>
+      <Variables>
+        <Variable Name="LeadID" Path="data.id">
+          <Filter />
+        </Variable>
+      </Variables>
+      <Outputs Next="ReportCall-GetDeal" AllowEmpty="true" />
+    </Scenario>
+    <Scenario Id="ReportCall-GetContact" Type="REST">
+      <Request SkipIf="" Url="https://api.pipedrive.com/v1/searchResults?term=[Number]&amp;item_type=person&amp;start=0&amp;api_token=[APIkey]" MessagePasses="0" RequestEncoding="UrlEncoded" RequestType="Get" ResponseType="Json" />
+      <Rules>
+        <Rule Type="Number">data.details.phone</Rule>
+      </Rules>
+      <Variables>
+        <Variable Name="EntityId" Path="data.id">
+          <Filter />
+        </Variable>
+      </Variables>
+      <Outputs Next="" AllowEmpty="false" />
+    </Scenario>
+  </Scenarios>
+</Crm>
