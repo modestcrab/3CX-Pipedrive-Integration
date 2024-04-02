@@ -15,7 +15,9 @@ Here are the supported features
  2. Server Side > +Add > Upload the pipedrive.xml file from this repository.
  3. Add the API key ( Found in Pipedrive > User > Pesonal Preferences > API ) & the domain part (Usually the domain once you log into pipedrive - https://example.pipedrive.com).
  4. Check if you need contact creation & Call journaling.
- 5. Go to Pipedrive and create a contract for each of your user that will use the system. Make sure their email on pipedrive matches the email on 3CX. In the phone number field enter AgentExtension-XX where XX represents the users extension in 3cx.
+ 5. Go to Pipedrive and create a contact* for each of your user that will use the system. Make sure their email on pipedrive matches the email on 3CX. In the phone number field enter AgentExtension-XX where XX represents the users extension in 3cx.
+    
+*You need to create a new contact in the address book. Go to Pipedrive > contacts > people > +person ..Add a new person that is your employee and then add a phone number which is the AgentExtension-XX.
 
 # Logic for call journaling
  <img width="140" alt="image" src="https://github.com/modestcrab/3CX-Pipedrive-Integration/assets/32093963/e82b6c86-adbb-43ac-8c90-963d62274906">
