@@ -1,4 +1,4 @@
-# 3CX (V18) To Pipedrive Integration
+# 3CX (V18/V20) To Pipedrive Integration
 3CX-Pipedrive Integration
 
 This is an integration of your 3CX PBX with Pipedrive.
